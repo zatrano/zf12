@@ -33,6 +33,7 @@ type IBaseRepository[T any] interface {
 type BaseRepository[T any] struct {
 	db                 *gorm.DB
 	allowedSortColumns map[string]bool
+	preloads           []string
 }
 
 func NewBaseRepository[T any](db *gorm.DB) *BaseRepository[T] {
@@ -52,12 +53,19 @@ func (r *BaseRepository[T]) SetAllowedSortColumns(columns []string) {
 	}
 }
 
+func (r *BaseRepository[T]) SetPreloads(preloads ...string) {
+	r.preloads = preloads
+}
+
 func (r *BaseRepository[T]) GetAll(params queryparams.ListParams) ([]T, int64, error) {
 	var results []T
 	var totalCount int64
 
 	var t T
 	query := r.db.Model(&t)
+	for _, preload := range r.preloads {
+		query = query.Preload(preload)
+	}
 
 	if params.Name != "" {
 		sqlFragment, args := turkishsearch.SQLFilter("name", params.Name)
@@ -97,7 +105,11 @@ func (r *BaseRepository[T]) GetAll(params queryparams.ListParams) ([]T, int64, e
 
 func (r *BaseRepository[T]) GetByID(id uint) (*T, error) {
 	var result T
-	err := r.db.First(&result, id).Error
+	query := r.db
+	for _, preload := range r.preloads {
+		query = query.Preload(preload)
+	}
+	err := query.First(&result, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
