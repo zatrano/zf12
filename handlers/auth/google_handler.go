@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"os"
 
@@ -46,7 +45,6 @@ func GoogleLogin(c *fiber.Ctx) error {
 	}
 
 	url := googleOauthConfig.AuthCodeURL(stateToken, oauth2.AccessTypeOffline)
-	log.Println("Generated Google OAuth URL:", url)
 	return c.Redirect(url, http.StatusTemporaryRedirect)
 }
 
